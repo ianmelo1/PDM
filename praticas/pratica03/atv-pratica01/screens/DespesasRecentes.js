@@ -1,37 +1,106 @@
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, Modal, Pressable, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import DespesaSaida from '../components/despesa/DespesaSaida';
+import { useGlobal } from '../context/GlobalState';
 
-const DUMMY_DESPESAS = [
-    {
-        id: '1',
-        descricao: 'Conta de luz',
-        valor: 100.99,
-        data: new Date(2025, 2, 11)
-    },
-    {
-        id: '2',
-        descricao: 'Conta de Agua',
-        valor: 40.99,
-        data: new Date(2025, 4, 10)
-    }
-];
+const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-function DespesasRecentes() {
-    function filtrarUltimos7Dias(despesas) {
-        const hoje = new Date();
-        const seteDiasAtras = new Date();
-        seteDiasAtras.setDate(hoje.getDate() - 7);
+export default function DespesasRecentes() {
+  const navigation = useNavigation();
+  const { transactions, loading, error, refresh, removeTransaction } = useGlobal();
+  const [selectedTx, setSelectedTx] = useState(null);
 
-        return despesas.filter(despesa => {
-            return despesa.data >= seteDiasAtras && despesa.data <= hoje;
-        });
-    }
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
 
-    return (
-        <DespesaSaida
-            despesas={filtrarUltimos7Dias(DUMMY_DESPESAS)}
-            periodo={'Últimos 7 dias'}
-        />
-    );
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  function changeMonth(dir) {
+    if (dir === -1 && month === 1) { setMonth(12); setYear(y => y - 1); }
+    else if (dir === 1 && month === 12) { setMonth(1); setYear(y => y + 1); }
+    else setMonth(m => m + dir);
+  }
+
+  const filtered = transactions.filter(tx => {
+    const d = new Date(tx.date ?? tx.data);
+    return d.getMonth() + 1 === month && d.getFullYear() === year;
+  });
+
+  function handleDelete() {
+    Alert.alert('Excluir', `Excluir "${selectedTx.description}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir', style: 'destructive',
+        onPress: async () => {
+          setSelectedTx(null);
+          await removeTransaction(selectedTx.id);
+        },
+      },
+    ]);
+  }
+
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  if (error) return (
+    <View style={styles.center}>
+      <Text style={styles.errorText}>{error}</Text>
+      <Pressable onPress={refresh} style={styles.retryBtn}>
+        <Text style={{ color: '#fff' }}>Tentar novamente</Text>
+      </Pressable>
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.filter}>
+        <Pressable onPress={() => changeMonth(-1)}>
+          <Ionicons name="chevron-back" size={24} color="#4a90d9" />
+        </Pressable>
+        <Text style={styles.filterText}>{MONTHS[month - 1]} {year}</Text>
+        <Pressable onPress={() => changeMonth(1)}>
+          <Ionicons name="chevron-forward" size={24} color="#4a90d9" />
+        </Pressable>
+      </View>
+
+      <DespesaSaida
+        despesas={filtered}
+        periodo={`${MONTHS[month - 1]} ${year}`}
+        onLongPress={setSelectedTx}
+      />
+
+      <Modal visible={!!selectedTx} transparent animationType="fade" onRequestClose={() => setSelectedTx(null)}>
+        <Pressable style={styles.overlay} onPress={() => setSelectedTx(null)}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>{selectedTx?.description}</Text>
+            <Pressable style={styles.modalBtn} onPress={() => {
+              setSelectedTx(null);
+              navigation.navigate('GerenciarDespesa', { transaction: selectedTx });
+            }}>
+              <Ionicons name="pencil" size={18} color="#4a90d9" />
+              <Text style={[styles.modalBtnText, { color: '#4a90d9' }]}>Editar</Text>
+            </Pressable>
+            <Pressable style={styles.modalBtn} onPress={handleDelete}>
+              <Ionicons name="trash" size={18} color="#c62828" />
+              <Text style={[styles.modalBtnText, { color: '#c62828' }]}>Excluir</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
 }
 
-export default DespesasRecentes;
+const styles = StyleSheet.create({
+  filter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 12, gap: 24 },
+  filterText: { fontSize: 16, fontWeight: '600', minWidth: 90, textAlign: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorText: { color: '#c62828', marginBottom: 12, textAlign: 'center' },
+  retryBtn: { backgroundColor: '#4a90d9', padding: 10, borderRadius: 8 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modal: { backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', elevation: 8 },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, borderTopWidth: 1, borderColor: '#eee' },
+  modalBtnText: { fontSize: 16, fontWeight: '500' },
+});
