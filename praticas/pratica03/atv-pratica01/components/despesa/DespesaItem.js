@@ -9,13 +9,13 @@ function DespesaItem({ item }) {
         <Pressable>
             <View style={styles.itemContainer}>
                 <View style={styles.itemText}>
-                    <Text>{getDataFormatada(item.item.data)}</Text>
+                    <Text>{getDataFormatada(item.data)}</Text>
                 </View>
                 <View style={styles.itemText}>
-                    <Text>{item.item.descricao}</Text>
+                    <Text>{item.descricao}</Text>
                 </View>
                 <View style={styles.itemText}>
-                    <Text>R$ {item.item.valor}</Text>
+                    <Text>R$ {item.valor}</Text>
                 </View>
             </View>
         </Pressable>
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
         padding: 2,
         marginVertical: 2,
         marginHorizontal: 2,
-        alignContent: 'left',
+        alignContent: 'flex-start',
     },
 });
 

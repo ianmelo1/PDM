@@ -61,6 +61,10 @@ function GerenciarDespesa() {
                 )}
             </View>
 
+            <Pressable style={styles.botao} onPress={() => {}}>
+                <Text style={styles.botaoTexto}>Salvar</Text>
+            </Pressable>
+
         </View>
     );
 }
@@ -82,6 +86,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#ccc',
         padding: 8,
+    },
+    botao: {
+        marginTop: 16,
+        backgroundColor: '#4a90d9',
+        padding: 14,
+        alignItems: 'center',
+        borderRadius: 6,
+    },
+    botaoTexto: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });
 
