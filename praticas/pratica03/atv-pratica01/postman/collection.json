@@ -1,0 +1,343 @@
+{
+  "info": {
+    "name": "Gestão Financeira API",
+    "_postman_id": "gestao-financeira-api-collection",
+    "description": "Collection completa para testar a API de gestão financeira. Configure a variável de ambiente `baseUrl` com `http://localhost:3000` antes de começar.\n\n**Ordem de uso:**\n1. Health-check\n2. Cadastrar usuário (Register)\n3. Login (salva o token)\n4. Listar categorias\n5. Criar nova categoria\n6. Atualizar categoria\n7. Excluir categoria\n8. Criar transação\n9. Listar transações\n10. Atualizar transação\n11. Excluir transação\n12. Testar validação de erros",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "transactionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Health-check",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": ["/"] },
+        "description": "Verifica se a API está no ar.\n\n**Resposta esperada:** `{ \"ok\": true, \"name\": \"gestao-financeira-api\" }`"
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"ok\": true,\n  \"name\": \"gestao-financeira-api\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Cadastrar usuário",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+        "description": "Cria um novo usuário e retorna o token JWT.\n\n**Resposta esperada:** `201 Created` com `user` e `token`.\n\nO token é salvo automaticamente na variável `{{token}}`."
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"user\": {\n    \"id\": \"cuid...\",\n    \"name\": \"João Silva\",\n    \"email\": \"joao@email.com\",\n    \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"joao@email.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+        "description": "Autentica o usuário e retorna o token JWT.\n\n**Resposta esperada:** `200 OK` com `user` e `token`.\n\nO token é salvo automaticamente na variável `{{token}}`."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"user\": {\n    \"id\": \"cuid...\",\n    \"name\": \"João Silva\",\n    \"email\": \"joao@email.com\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+        },
+        {
+          "name": "401 Credenciais inválidas",
+          "status": "Unauthorized",
+          "code": 401,
+          "body": "{\n  \"error\": \"Credenciais inválidas\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Listar categorias",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "var income = json.find(function(c) { return c.name === 'income'; });",
+              "if (income) { pm.collectionVariables.set('categoryId', income.id); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] },
+        "description": "Lista todas as categorias ordenadas por nome.\n\nDevem aparecer as 5 categorias padrão inseridas pelo seed:\n- Alimentação, Casa, Educação, Renda, Viagens\n\nO `id` da categoria `income` é salvo automaticamente em `{{categoryId}}`."
+      },
+      "response": [
+        {
+          "name": "200 OK - 5 categorias padrão",
+          "status": "OK",
+          "code": 200,
+          "body": "[\n  { \"id\": \"...\", \"name\": \"food\", \"displayName\": \"Alimentação\", \"icon\": \"fastfood\", \"background\": \"#DEA17B\", \"isIncome\": false, \"isDefault\": true },\n  { \"id\": \"...\", \"name\": \"house\", \"displayName\": \"Casa\", \"icon\": \"home\", \"background\": \"#E6E088\", \"isIncome\": false, \"isDefault\": true },\n  { \"id\": \"...\", \"name\": \"education\", \"displayName\": \"Educação\", \"icon\": \"book\", \"background\": \"#AB8FBE\", \"isIncome\": false, \"isDefault\": true },\n  { \"id\": \"...\", \"name\": \"income\", \"displayName\": \"Renda\", \"icon\": \"work\", \"background\": \"#DE9AC3\", \"isIncome\": true, \"isDefault\": true },\n  { \"id\": \"...\", \"name\": \"travel\", \"displayName\": \"Viagens\", \"icon\": \"airplanemode-active\", \"background\": \"#82C9DE\", \"isIncome\": false, \"isDefault\": true }\n]"
+        }
+      ]
+    },
+    {
+      "name": "5. Criar categoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.id) { pm.collectionVariables.set('categoryId', json.id); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"health\",\n  \"displayName\": \"Saúde\",\n  \"icon\": \"favorite\",\n  \"background\": \"#FFB6B6\",\n  \"isIncome\": false\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] },
+        "description": "Cria uma nova categoria personalizada.\n\n**Resposta esperada:** `201 Created` com o objeto criado incluindo o `id` gerado.\n\nO `id` da nova categoria é salvo automaticamente em `{{categoryId}}`."
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"id\": \"cuid...\",\n  \"name\": \"health\",\n  \"displayName\": \"Saúde\",\n  \"icon\": \"favorite\",\n  \"background\": \"#FFB6B6\",\n  \"isIncome\": false,\n  \"isDefault\": false,\n  \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Atualizar categoria",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"displayName\": \"Saúde e Bem-estar\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] },
+        "description": "Atualiza uma categoria existente.\n\nUsa o `{{categoryId}}` salvo na requisição anterior.\n\n**Resposta esperada:** `200 OK` com o objeto atualizado."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"id\": \"cuid...\",\n  \"name\": \"health\",\n  \"displayName\": \"Saúde e Bem-estar\",\n  \"icon\": \"favorite\",\n  \"background\": \"#FFB6B6\",\n  \"isIncome\": false,\n  \"isDefault\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Excluir categoria personalizada",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] },
+        "description": "Exclui a categoria personalizada criada anteriormente.\n\n**Resposta esperada:** `204 No Content`."
+      },
+      "response": [
+        {
+          "name": "204 No Content",
+          "status": "No Content",
+          "code": 204,
+          "body": ""
+        }
+      ]
+    },
+    {
+      "name": "7b. Tentar excluir categoria padrão (deve falhar)",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/categories/COLE_AQUI_O_ID_DA_CATEGORIA_INCOME", "host": ["{{baseUrl}}"], "path": ["categories", "COLE_AQUI_O_ID_DA_CATEGORIA_INCOME"] },
+        "description": "Tenta excluir uma categoria padrão (ex: income).\n\n**Resposta esperada:** `400 Bad Request` com a mensagem `\"Categorias padrão não podem ser excluídas\"`.\n\nSubstitua o `:id` pelo id da categoria `income` obtido na listagem."
+      },
+      "response": [
+        {
+          "name": "400 Bad Request",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"error\": \"Categorias padrão não podem ser excluídas\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "8. Criar transação",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.id) { pm.collectionVariables.set('transactionId', json.id); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Salário de outubro\",\n  \"value\": 3500.50,\n  \"date\": \"2026-04-29\",\n  \"categoryId\": \"{{categoryId}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/transactions", "host": ["{{baseUrl}}"], "path": ["transactions"] },
+        "description": "Cria uma nova transação.\n\nUsa o `{{categoryId}}` da categoria `income` (salvo na listagem de categorias).\n\n**Resposta esperada:** `201 Created` com o objeto incluindo a `category` aninhada.\n\nO `id` da transação é salvo automaticamente em `{{transactionId}}`."
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"id\": \"cuid...\",\n  \"description\": \"Salário de outubro\",\n  \"value\": \"3500.50\",\n  \"date\": \"2026-04-29T00:00:00.000Z\",\n  \"categoryId\": \"cuid...\",\n  \"category\": {\n    \"id\": \"cuid...\",\n    \"name\": \"income\",\n    \"displayName\": \"Renda\",\n    \"icon\": \"work\",\n    \"background\": \"#DE9AC3\",\n    \"isIncome\": true,\n    \"isDefault\": true\n  },\n  \"createdAt\": \"2026-01-01T00:00:00.000Z\",\n  \"updatedAt\": \"2026-01-01T00:00:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "9. Listar transações",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/transactions", "host": ["{{baseUrl}}"], "path": ["transactions"] },
+        "description": "Lista todas as transações com a `category` expandida, ordenadas por data decrescente.\n\n**Resposta esperada:** `200 OK` com array de transações."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "[\n  {\n    \"id\": \"cuid...\",\n    \"description\": \"Salário de outubro\",\n    \"value\": \"3500.50\",\n    \"date\": \"2026-04-29T00:00:00.000Z\",\n    \"categoryId\": \"cuid...\",\n    \"category\": { \"id\": \"cuid...\", \"name\": \"income\", \"displayName\": \"Renda\", \"isIncome\": true }\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "9b. Listar transações por mês/ano",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/transactions?month=4&year=2026",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions"],
+          "query": [
+            { "key": "month", "value": "4" },
+            { "key": "year", "value": "2026" }
+          ]
+        },
+        "description": "Lista transações filtradas por mês e ano.\n\n**Resposta esperada:** `200 OK` apenas com transações de abril/2026."
+      },
+      "response": []
+    },
+    {
+      "name": "10. Atualizar transação",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Salário de outubro (corrigido)\",\n  \"value\": 3800.00\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transactions", "{{transactionId}}"] },
+        "description": "Atualiza uma transação existente.\n\n**Resposta esperada:** `200 OK` com o objeto atualizado e `category` aninhada."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"id\": \"cuid...\",\n  \"description\": \"Salário de outubro (corrigido)\",\n  \"value\": \"3800.00\",\n  \"category\": { \"displayName\": \"Renda\" }\n}"
+        }
+      ]
+    },
+    {
+      "name": "11. Excluir transação",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transactions", "{{transactionId}}"] },
+        "description": "Exclui a transação criada anteriormente.\n\n**Resposta esperada:** `204 No Content`."
+      },
+      "response": [
+        {
+          "name": "204 No Content",
+          "status": "No Content",
+          "code": 204,
+          "body": ""
+        }
+      ]
+    },
+    {
+      "name": "12. Validar erro - dados inválidos",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/transactions", "host": ["{{baseUrl}}"], "path": ["transactions"] },
+        "description": "Testa a validação do servidor com dados inválidos.\n\n**Resposta esperada:** `400 Bad Request` com `\"error\": \"Dados inválidos\"` e lista de problemas em `details` — validação pelo Zod."
+      },
+      "response": [
+        {
+          "name": "400 Bad Request",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"error\": \"Dados inválidos\",\n  \"details\": [\n    { \"code\": \"too_small\", \"path\": [\"description\"], \"message\": \"String must contain at least 1 character(s)\" },\n    { \"code\": \"too_small\", \"path\": [\"value\"], \"message\": \"Required\" },\n    { \"code\": \"invalid_type\", \"path\": [\"date\"], \"message\": \"Required\" },\n    { \"code\": \"too_small\", \"path\": [\"categoryId\"], \"message\": \"Required\" }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
